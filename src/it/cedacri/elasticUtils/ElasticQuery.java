@@ -6,27 +6,28 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.lucene.sandbox.queries.FuzzyLikeThisQuery;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.query.FuzzyQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.cedacri.bean.ListedSubject;
+import it.cedacri.bean.LookingSubject;
+import it.cedacri.elasticUtils.CedacriQueryBuilder.CustomQueryBuilder;
+import it.cedacri.utils.Utils;
 
 /**
  * Query API's to interact with the elastic search client
@@ -95,18 +96,12 @@ public class ElasticQuery {
 		System.out.println(response.getField("lastName"));
 	}
 
-	public void scoredQuery(Client client, String index, String type, ListedSubject subject) {
-		QueryBuilder headingQuery = QueryBuilders.matchQuery("heading", subject.getHeading())
-				.minimumShouldMatch("2").fuzziness(Fuzziness.TWO);
-		QueryBuilder fiscalQuery = QueryBuilders.matchQuery("fiscalCode", subject.getFiscalCode())
-				.fuzziness(Fuzziness.TWO).boost(5.0f);
-		QueryBuilder countryQuery = QueryBuilders.matchQuery("countries", "ITALY")
-				.fuzziness(Fuzziness.TWO);
-
-		QueryBuilder builder = QueryBuilders.boolQuery().should(headingQuery).should(fiscalQuery)
-				.should(countryQuery);
-		SearchResponse response = client.prepareSearch(index).setTypes(type).setQuery(builder)
-				.setMinScore(1.0f).execute().actionGet();
+	public void scoredQuery(Client client, String index, String type, LookingSubject subject) {
+		SearchResponse response = client.prepareSearch(index)
+				.setTypes(type)
+				.setQuery(new CedacriQueryBuilder.CustomQueryBuilder(subject).build().getQuery())
+//				.setMinScore(1.0f)
+				.execute().actionGet();
 
 		System.out.println(response);
 	}
@@ -116,7 +111,7 @@ public class ElasticQuery {
 				.fuzziness(Fuzziness.ONE).boost(5.0f).operator(MatchQueryBuilder.Operator.OR);
 
 		SearchResponse response = client.prepareSearch(index).setTypes(type)
-				.setQuery(QueryBuilders.constantScoreQuery(headingQuery)).setMinScore(0.5f)
+				.setQuery(headingQuery).setMinScore(0.5f)
 				.execute().actionGet();
 
 		System.out.println(response);
@@ -141,13 +136,16 @@ public class ElasticQuery {
 		SearchResponse response = client.prepareSearch(index).setTypes(type).setQuery(builder)
 				.execute().actionGet();
 		System.out.println(response);
+		
 	}
-
-	public void fuzzyQuery(Client client, String index, String type, String field, String value) {
-		QueryBuilder builder = QueryBuilders.matchQuery(field, value).minimumShouldMatch("2")
-				.fuzziness(Fuzziness.ONE).boost(5.0f);
-		SearchResponse response = client.prepareSearch(index).setTypes(type).setQuery(builder)
+	
+	public void dateQuery(Client client, String index, String type, String field, String value) {
+//		QueryBuilder builer = QueryBuilders.fuzzyQuery(field, value).
+		FuzzyQueryBuilder queryBuilder = QueryBuilders.fuzzyQuery(field,value).fuzziness(Fuzziness.build("30d"));
+		SearchResponse response = client.prepareSearch(index).setTypes(type).setQuery(queryBuilder)
 				.execute().actionGet();
 		System.out.println(response);
 	}
+	
+	
 }

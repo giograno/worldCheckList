@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import it.cedacri.bean.ListedSubject;
+import it.cedacri.utils.Utils;
 
 /**
  * Parse a record of a world check list, filling a list of
@@ -169,7 +170,7 @@ public class XmlHandler extends DefaultHandler {
 			bLastName = false;
 		} else if (bAlias) {
 			if (s.length() != 0) {
-				aliasList.add(s);
+				aliasList.add(s.replaceAll(",", " "));
 			}
 			bAlias = false;
 		} else if (bSpelling) {
@@ -178,11 +179,10 @@ public class XmlHandler extends DefaultHandler {
 			}
 			bSpelling = false;
 		} else if (bDate) {
-			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 			Date date = null;
 
 			try {
-				date = dateFormat.parse(s);
+				date = Utils.getDateFromString(s);
 			} catch (ParseException e) {
 				System.err.println("Invalid date to parse");
 			}

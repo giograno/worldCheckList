@@ -30,6 +30,13 @@ public class LookingSubject {
 		return dateOfBirth;
 	}
 
+	public boolean isOnlyHeading() {
+		if (fiscalCode == null && sex == null && country == null && dateOfBirth == null)
+			return true;
+		else
+			return false;
+	}
+
 	public static class SubjectBuilder {
 
 		private final String heading;
@@ -38,6 +45,11 @@ public class LookingSubject {
 		private String country = null;
 		private Date dateOfBirth = null;
 
+		/**
+		 * Constructor of a subject
+		 * 
+		 * @param heading
+		 */
 		public SubjectBuilder(String heading) {
 			this.heading = heading;
 		}
